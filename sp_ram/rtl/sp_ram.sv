@@ -16,12 +16,6 @@ module sp_ram
 );
 
     logic [31:0] mem [0:255];
-
-    initial begin
-        for(int i = 0; i != 255; i = i + 1)
-            mem[i] = 32'bx;
-        $readmemb("../../soc_utils/fibonacci.bin", mem);
-    end
       
     always_ff @(posedge clk)
         if (port_we_i)
