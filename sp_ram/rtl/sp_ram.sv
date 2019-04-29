@@ -1,34 +1,59 @@
 module sp_ram
-(
-    input  logic        clk,
-    input  logic        rst_n,
+#(
+    parameter ADDR_WIDTH = 8,
+    parameter DATA_WIDTH = 32,
+    parameter NUM_WORDS  = 256
+)(
+    input  logic                    clk,
+    input  logic                    rst_n,
 
-    input  logic        port_req_i,
-    output logic        port_gnt_o,
-    output logic        port_rvalid_o,
-    input  logic [31:0] port_addr_i,
-    input  logic        port_we_i,
-    output logic [31:0] port_rdata_o,
-    input  logic [31:0] port_wdata_i,
+    input  logic                    port_req_i,
+    input  logic [ADDR_WIDTH-1:0]   port_addr_i,
+    input  logic                    port_we_i,
+    input  logic [DATA_WIDTH-1:0]   port_wdata_i,
+    input  logic                    en_i,
+    input  logic [DATA_WIDTH/8-1:0] be_i,
 
-    output logic [31:0] mem_flag,
-    output logic [31:0] mem_result
+    output logic                    port_gnt_o,
+    output logic                    port_rvalid_o,
+    output logic [DATA_WIDTH-1:0]   port_rdata_o,
+
+    output logic                    mem_flag,
+    output logic                    mem_result
 );
 
-    logic [31:0] mem [0:255];
+    //localparam words = NUM_WORDS/(DATA_WIDTH/8);
+    localparam words = NUM_WORDS;
+
+    logic [DATA_WIDTH/8-1:0][7:0] mem[words];
+    logic [DATA_WIDTH/8-1:0][7:0] wdata;
+    logic [ADDR_WIDTH-1-$clog2(DATA_WIDTH/8):0] addr;
+
+    integer i;
+
+    assign addr = port_addr_i[ADDR_WIDTH-1:$clog2(DATA_WIDTH/8)];
 
     initial begin
-        for(int i = 0; i != 255; i = i + 1)
-            mem[i] = 32'bx;
         $readmemb("../soc_utils/fibonacci.bin", mem);
     end
-      
-    always_ff @(posedge clk)
-        if (port_we_i)
-            mem[port_addr_i] <= port_wdata_i;
 
-    assign port_rdata_o = mem[port_addr_i];
-      
+    always @(posedge clk) begin
+        if (en_i && port_we_i) begin
+            for (i = 0; i < DATA_WIDTH/8; i++) begin
+            if (be_i[i])
+              mem[addr][i] <= wdata[i];
+            end
+        end
+
+        port_rdata_o <= mem[addr];
+    end
+
+    genvar w;
+    generate for(w = 0; w < DATA_WIDTH/8; w++) begin
+        assign wdata[w] = port_wdata_i[(w+1)*8-1:w*8];
+    end
+    endgenerate
+
     always_comb 
         if(port_req_i)
             port_gnt_o = 1'b1;
@@ -40,8 +65,4 @@ module sp_ram
             port_rvalid_o <= 1'b0;
         else
             port_rvalid_o <= port_gnt_o;
-
-    assign mem_flag = mem[0];
-    assign mem_result = mem[4];
-
 endmodule
