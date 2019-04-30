@@ -1,7 +1,8 @@
 module tb_sp_ram();
-parameter ADDR_WIDTH = 8;
-parameter DATA_WIDTH = 32;
-parameter NUM_WORDS  = 256;
+
+    parameter ADDR_WIDTH = 8;
+    parameter DATA_WIDTH = 32;
+    parameter NUM_WORDS  = 256;
 
     logic                    clk;
     logic                    rst_n;
@@ -20,8 +21,12 @@ parameter NUM_WORDS  = 256;
     logic        mem_flag;
     logic        mem_result;
 
-    sp_ram dut
-    (
+    sp_ram 
+    #(
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .DATA_WIDTH(DATA_WIDTH),
+        .NUM_WORDS(NUM_WORDS)
+    )dut(
         .clk(clk),
         .rst_n(rst_n),
 
@@ -44,38 +49,60 @@ parameter NUM_WORDS  = 256;
     always #5 clk = ~clk;
 
     initial begin
-        $display("time |  addr  |  rdata |  gnt |");
-        $monitor("%4t | %h | %h |  %b  |", 
+        $readmemb("../soc_utils/fibonacci.bin", dut.mem);
+    end
+
+    logic [31:0] counter;
+    initial begin
+        $display("time |  addr  |  rdata   |  wdata   | gnt |");
+        $monitor("%4t |   %h   | %h | %h | %b  |", 
                                   $time, port_addr_i,
                                   port_rdata_o,
-                                  port_gnt_o,
+                                  port_wdata_i,
+                                  port_gnt_o
                 );
 
         clk = 0;
         rst_n = 1;
         port_req_i = 0;
-        #10
+        port_we_i = 0;
+        en_i = 1;
+        @(posedge clk);
         rst_n = 0;
-        #10
-        port_req_i = 1;
-        port_addr_i = 128;
-        #10
-        port_req_i = 0;
-        #10
-        port_req_i = 1;
-        port_addr_i = 140;
-        #10
-        port_req_i = 0;
-        #10
-        port_req_i = 1;
-        port_addr_i = 144;
-        #10
-        port_req_i = 0;
-        #10
-        port_req_i = 1;
-        port_addr_i = 136;
-        #10
-        port_req_i = 0;
+
+        for (counter = 32'h80; counter < NUM_WORDS; counter = counter + 4) begin
+            @(posedge clk);
+            port_req_i = 1;
+            port_addr_i = counter;
+            be_i = 4'b0001;
+            @(posedge clk);
+            port_req_i = 0;
+        end
+
+        #20 $display("\nwrite time\n");
+
+        for (counter = 32'hcc; counter < NUM_WORDS; counter = counter + 4) begin
+            @(posedge clk);
+            port_req_i = 1;
+            port_we_i = 1;
+            port_addr_i = counter;
+            port_wdata_i = 32'hBEEF;
+            be_i = 4'b1111;
+            @(posedge clk);
+            port_req_i = 0;
+            port_we_i = 0;
+        end
+
+        #20 $display("\nread again\n");
+
+        for (counter = 32'hcc; counter < NUM_WORDS; counter = counter + 4) begin
+            @(posedge clk);
+            port_req_i = 1;
+            port_addr_i = counter;
+            be_i = 4'b0001;
+            @(posedge clk);
+            port_req_i = 0;
+        end
 
 
         #100 $finish;

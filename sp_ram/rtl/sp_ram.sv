@@ -33,10 +33,6 @@ module sp_ram
 
     assign addr = port_addr_i[ADDR_WIDTH-1:$clog2(DATA_WIDTH/8)];
 
-    initial begin
-        $readmemb("../soc_utils/fibonacci.bin", mem);
-    end
-
     always @(posedge clk) begin
         if (en_i && port_we_i) begin
             for (i = 0; i < DATA_WIDTH/8; i++) begin
