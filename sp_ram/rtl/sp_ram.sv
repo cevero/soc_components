@@ -13,6 +13,7 @@ module sp_ram
     input  logic [DATA_WIDTH-1:0]   wdata_i,
     input  logic [DATA_WIDTH/8-1:0] be_i,
 
+
     output logic                    gnt_o,
     output logic                    rvalid_o,
     output logic [DATA_WIDTH-1:0]   rdata_o
@@ -32,8 +33,8 @@ module sp_ram
     always @(posedge clk) begin
         if (rst_n && we_i) begin
             for (i = 0; i < DATA_WIDTH/8; i++) begin
-            if (be_i[i])
-              mem[addr][i] <= wdata[i];
+                if (be_i[i])
+                  mem[addr][i] <= wdata[i];
             end
         end
         rdata_o <= mem[addr];
@@ -46,14 +47,14 @@ module sp_ram
     endgenerate
 
     always_comb 
-        if(port_req_i)
-            port_gnt_o = 1'b1;
+        if(req_i)
+            gnt_o = 1'b1;
         else
-            port_gnt_o = 1'b0;
+            gnt_o = 1'b0;
 
     always_ff @(posedge clk, negedge rst_n)
         if (rst_n == 1'b0)
-            port_rvalid_o <= 1'b0;
+            rvalid_o <= 1'b0;
         else
-            port_rvalid_o <= port_gnt_o;
+            rvalid_o <= gnt_o;
 endmodule
