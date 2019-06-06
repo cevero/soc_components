@@ -44,7 +44,7 @@ module tb_sp_ram();
     always #5 clk = ~clk;
 
     initial begin
-        $readmemb("../soc_utils/fibonacci_byte.bin", dut.mem);
+        $readmemb("../soc_utils/fibonacci.bin", dut.mem);
     end
 
     logic [31:0] counter;
