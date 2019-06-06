@@ -1,40 +1,105 @@
 module tb_sp_ram();
-    logic        clk,
-    logic        rst_n,
 
-    logic        port_req_i,
-    logic        port_gnt_o,
-    logic        port_rvalid_o,
-    logic [31:0] port_addr_i,
-    logic        port_we_i,
-    logic [31:0] port_rdata_o,
-    logic [31:0] port_wdata_i,
+    parameter ADDR_WIDTH = 8;
+    parameter DATA_WIDTH = 32;
+    parameter NUM_WORDS  = 256;
 
-    logic [31:0] mem_flag,
-    logic [31:0] mem_result
+    logic                    clk;
+    logic                    rst_n;
 
-    sp_ram dut
-    (
+    logic                    req;
+    logic [ADDR_WIDTH-1:0]   addr;
+    logic                    we;
+    logic [DATA_WIDTH-1:0]   wdata;
+    logic [DATA_WIDTH/8-1:0] be;
+
+    logic                    gnt;
+    logic                    rvalid;
+    logic [DATA_WIDTH-1:0]   rdata;
+
+    logic        mem_flag;
+    logic        mem_result;
+
+    sp_ram 
+    #(
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .DATA_WIDTH(DATA_WIDTH),
+        .NUM_WORDS(NUM_WORDS)
+    )dut(
         .clk(clk),
         .rst_n(rst_n),
-                     
-        .port_req_i(port_req_i),
-        .port_gnt_o(port_gnt_o),
-        .port_rvalid_o(port_rvalid_o),
-        .port_addr_i(port_addr_i),
-        .port_we_i(port_we_i),
-        .port_rdata_o(port_rdata_o),
-        .port_wdata_i(port_wdata_i),
-                      
-        .mem_flag(mem_flag),
-        .mem_result(mem_result)  
+
+        .req_i(req),
+        .addr_i(addr),
+        .we_i(we),
+        .wdata_i(wdata),
+        .be_i(be),
+
+        .gnt_o(gnt),
+        .rvalid_o(rvalid),
+        .rdata_o(rdata)
 
     );
 
-    initial begin
-        //$display("time | addr | data | signal |");
-        //$monitor("%4t | %4d | %4d | %6b |", $time, addr_o, data_o, signal);
+    always #5 clk = ~clk;
 
-        #2 $finish;
+    initial begin
+        $readmemb("../soc_utils/fibonacci_byte.bin", dut.mem);
     end
+
+    logic [31:0] counter;
+    initial begin
+        $display("time |  addr  |  rdata   |  wdata   | gnt |");
+        $monitor("%4t |   %h   | %b | %b |", 
+                                  $time, addr,
+                                  rdata,
+                                  wdata
+                );
+
+        clk = 0;
+        rst_n = 1;
+        req = 0;
+        we = 0;
+        @(posedge clk);
+        rst_n = 0;
+        #20 rst_n = 1;
+
+        for (counter = 32'h80; counter < NUM_WORDS; counter = counter + 4) begin
+            @(posedge clk);
+            req = 1;
+            addr = counter;
+            be = 4'b0001;
+            @(posedge clk);
+            req = 0;
+        end
+
+        #20 $display("\nwrite time\n");
+
+        for (counter = 32'hcc; counter < NUM_WORDS; counter = counter + 4) begin
+            @(posedge clk);
+            req = 1;
+            we = 1;
+            addr = counter;
+            wdata = 32'hBEEF;
+            be = 4'b1111;
+            @(posedge clk);
+            req = 0;
+            we = 0;
+        end
+
+        #20 $display("\nread again\n");
+
+        for (counter = 32'hcc; counter < NUM_WORDS; counter = counter + 4) begin
+            @(posedge clk);
+            req = 1;
+            addr = counter;
+            be = 4'b0001;
+            @(posedge clk);
+            req = 0;
+        end
+
+
+        #100 $finish;
+    end
+
 endmodule
