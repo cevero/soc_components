@@ -8,7 +8,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-module cluster_clock_gating
+module prim_clock_gating
 (
     input  logic clk_i,
     input  logic en_i,
