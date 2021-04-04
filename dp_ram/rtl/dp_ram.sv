@@ -27,10 +27,10 @@ module dp_ram
 
     initial begin
         for(int i = 0; i != 255; i = i + 1)
-            mem[i] = 32'bX;
-        $readmemb("../soc_utils/instmem.bin",mem);
+            mem[i] = 32'bx;
+        $readmemb("../../soc_utils/fibonacci_byte.bin", mem);
     end
-  
+
     always_ff @(posedge clk) begin
         if (port1_we_i)
             mem[port1_addr_i] <= port1_wdata_i;
