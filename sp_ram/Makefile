@@ -29,7 +29,7 @@ run:
 	$(SIM) -batch -do script/run.do work.tb_$(TOP_LEVEL)
 
 wave:
-	$(SIM) -do script/wave_run.do work.tb_$(TOP_LEVEL)
+	$(SIM) -voptargs="+acc" -do script/wave_run.do work.tb_$(TOP_LEVEL)
 
 # Removes all generated files
 clean:

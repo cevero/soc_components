@@ -50,55 +50,102 @@ module tb_sp_ram();
     logic [31:0] counter;
     initial begin
         $display("time |  addr  |  rdata   |  wdata   | gnt |");
-        $monitor("%4t |   %h   | %b | %b |", 
-                                  $time, addr,
-                                  rdata,
-                                  wdata
-                );
+        $monitor("%4t |   %h   | %b | %b |", $time, addr, rdata, wdata);
 
+		//init signals	
         clk = 0;
         rst_n = 1;
         req = 0;
         we = 0;
         @(posedge clk);
         rst_n = 0;
-        #20 rst_n = 1;
 
-        for (counter = 32'h80; counter < NUM_WORDS; counter = counter + 4) begin
-            @(posedge clk);
-            req = 1;
-            addr = counter;
-            be = 4'b0001;
-            @(posedge clk);
-            req = 0;
-        end
+        @(posedge clk);
+        rst_n = 1;
 
-        #20 $display("\nwrite time\n");
+		#10   //wait
 
-        for (counter = 32'hcc; counter < NUM_WORDS; counter = counter + 4) begin
-            @(posedge clk);
+		req = 1;
+		addr = 32'h80;
+		we = 0;
+		be = 4'b1111;
+
+		#10
+		addr = 32'hxx;
+		req = 0;
+		
+		#10 rst_n = 0;
+        #10 rst_n = 1;
+		addr = 32'hxx;
+
+		#20 //write test
+		
+		req = 1;
+		addr = 32'h80;
+		we = 1;
+		wdata = 32'hdeadbeef;
+		be = 4'b1111;
+	
+		#10 
+		req = 0;
+		we =0;
+		wdata = 32'hxxxxxxxx;
+		addr = 32'hxx;
+		
+		#20 //wait
+
+
+		#10;
+		req = 1;
+		addr = 32'h80;
+		we = 0;
+		be = 4'b1111;
+		#10;
+		req = 1;
+		addr = 32'h84;
+		we = 0;
+		be = 4'b1111;
+		#10;
+		req = 1;
+		addr = 32'h88;
+		we = 0;
+		be = 4'b1111;
+		#10;
+		req = 1;
+		addr = 32'h8c;
+		we = 0;
+		be = 4'b1111;
+		
+		#5;
+		req = 0;
+
+		@(posedge clk);
+
+		for (counter = 32'h90; counter < 32'h90 + 4*5; counter = counter + 4) begin
+			#10
             req = 1;
             we = 1;
             addr = counter;
-            wdata = 32'hBEEF;
+            wdata = 32'hBEEF0000 + (counter - 32'h90);
             be = 4'b1111;
-            @(posedge clk);
-            req = 0;
-            we = 0;
         end
 
-        #20 $display("\nread again\n");
+		#5;
+		req = 0;
 
-        for (counter = 32'hcc; counter < NUM_WORDS; counter = counter + 4) begin
-            @(posedge clk);
+		#5;
+
+		for (counter = 32'h90; counter < 32'h90 + 4*5; counter = counter + 4) begin
+			#10
             req = 1;
+            we = 0;
             addr = counter;
-            be = 4'b0001;
-            @(posedge clk);
-            req = 0;
+            wdata = 32'hBEEF0000 ;
+            be = 4'b1111;
         end
 
-
+		#5;
+		req = 0;
         #100 $finish;
     end
 
